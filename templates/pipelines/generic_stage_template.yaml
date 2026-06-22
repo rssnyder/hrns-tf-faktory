@@ -1,0 +1,20 @@
+pipeline:
+  name: ${PIPELINE_NAME}
+  identifier: ${PIPELINE_IDENTIFIER}
+  projectIdentifier: ${PROJECT_ID}
+  orgIdentifier: ${ORGANIZATION_ID}
+  description: ${PIPELINE_DESCRIPTION}
+  tags:
+    ${indent(4, TAGS)}
+  stages:
+    - stage:
+        name: ${STAGE_NAME}
+        identifier: ${STAGE_IDENTIFIER}
+        tags: {}
+        template:
+          templateRef: ${STAGE_TEMPLATE_REF}
+          versionLabel: ${STAGE_TEMPLATE_VERSION}
+          templateInputs:
+            type: IACM
+            spec:
+              ${STAGE_INPUT_KEY}: <+input>

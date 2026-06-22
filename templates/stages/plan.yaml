@@ -1,0 +1,44 @@
+template:
+  name: ${TEMPLATE_NAME}
+  identifier: ${TEMPLATE_IDENTIFIER}
+  versionLabel: ${TEMPLATE_VERSION}
+  type: Stage
+  comments: ${TEMPLATE_COMMENTS}
+  tags:
+    ${indent(4, TAGS)}
+  spec:
+    type: IACM
+    spec:
+${IACM_STAGE_INFRASTRUCTURE}
+      workspace: <+input>
+      execution:
+        steps:
+          - step:
+${TF_STEP}
+              name: init
+              identifier: init
+              timeout: 10m
+              spec:
+                command: init
+          - step:
+              type: Checkov
+              name: checkov
+              identifier: checkov
+              spec:
+                mode: orchestration
+                config: default
+                target:
+                  type: repository
+                  workspace: <+workspace.folderPath>
+                  detection: auto
+                advanced:
+                  fail_on_severity: ${CHECKOV_FAIL_ON_SEVERITY}
+                  log:
+                    level: info
+          - step:
+${TF_STEP}
+              name: plan
+              identifier: plan
+              timeout: 10m
+              spec:
+                command: plan

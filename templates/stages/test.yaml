@@ -1,0 +1,22 @@
+template:
+  name: ${TEMPLATE_NAME}
+  identifier: ${TEMPLATE_IDENTIFIER}
+  versionLabel: ${TEMPLATE_VERSION}
+  type: Stage
+  comments: ${TEMPLATE_COMMENTS}
+  tags:
+    ${indent(4, TAGS)}
+  spec:
+    type: IACM
+    spec:
+${IACM_STAGE_INFRASTRUCTURE}
+      moduleId: <+input>
+      execution:
+        steps:
+          - step:
+              type: IACMModuleTestPlugin
+              name: test
+              identifier: test
+              spec:
+                command: test
+              timeout: 100m

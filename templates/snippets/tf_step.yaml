@@ -1,0 +1,5 @@
+              type: ${PROVISIONER_TYPE}
+              %{~ if PLUGIN_IMAGE != "skipped" ~}
+              image: ${PLUGIN_IMAGE}
+              connectorRef: ${PLUGIN_CONNECTOR}
+              %{~ endif ~}

@@ -1,0 +1,25 @@
+pipeline:
+  name: ${PIPELINE_NAME}
+  identifier: ${PIPELINE_IDENTIFIER}
+  projectIdentifier: ${PROJECT_ID}
+  orgIdentifier: ${ORGANIZATION_ID}
+  description: ${PIPELINE_DESCRIPTION}
+  tags:
+    ${indent(4, TAGS)}
+  stages:
+    - stage:
+        name: testing
+        identifier: testing
+        type: IACM
+        spec:
+${IACM_STAGE_INFRASTRUCTURE}
+          moduleId: <+input>
+          execution:
+            steps:
+              - step:
+                  type: IACMModuleTestPlugin
+                  name: testing
+                  identifier: testing
+                  spec:
+                    command: ${IACM_TESTING_COMMAND}
+                  timeout: 100m

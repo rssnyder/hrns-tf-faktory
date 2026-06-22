@@ -1,0 +1,43 @@
+template:
+  name: ${TEMPLATE_NAME}
+  identifier: ${TEMPLATE_IDENTIFIER}
+  versionLabel: ${TEMPLATE_VERSION}
+  type: Stage
+  comments: ${TEMPLATE_COMMENTS}
+  tags:
+    ${indent(4, TAGS)}
+  spec:
+    type: IACM
+    spec:
+${IACM_STAGE_INFRASTRUCTURE}
+      workspace: <+input>
+      execution:
+        steps:
+          - step:
+${TF_STEP}
+              name: init
+              identifier: init
+              timeout: 10m
+              spec:
+                command: init
+          - step:
+${TF_STEP}
+              name: plan
+              identifier: plan
+              timeout: 10m
+              spec:
+                command: plan
+          - step:
+              type: IACMApproval
+              name: approve
+              identifier: approve
+              spec:
+                autoApprove: false
+              timeout: 1h
+          - step:
+${TF_STEP}
+              name: apply
+              identifier: apply
+              timeout: 10m
+              spec:
+                command: apply
