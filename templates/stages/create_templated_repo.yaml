@@ -1,0 +1,77 @@
+template:  
+  name: ${TEMPLATE_NAME}
+  identifier: ${TEMPLATE_IDENTIFIER}
+  versionLabel: ${TEMPLATE_VERSION}
+  type: Stage
+  comments: ${TEMPLATE_COMMENTS}
+  tags:
+    ${indent(4, TAGS)}
+  spec:
+    type: IDP
+    spec:
+${IDP_STAGE_INFRASTRUCTURE}
+      execution:
+        steps:
+          - step:
+              type: CreateRepo
+              name: Create Repo
+              identifier: Create_Repo
+              spec:
+                connectorType: ${GIT_CONNECTOR_TYPE}
+                connectorRef: ${GIT_CONNECTOR_REF}
+                organization: ${GIT_ORG}
+                repository: <+input>
+                repoType: private
+                description: <+input>
+                defaultBranch: <+stage.variables.branch>
+                personalAccount: ${IS_PERSONAL_ACCOUNT}
+            contextType: Pipeline
+          - step:
+              type: GitClone
+              name: Clone Template
+              identifier: Clone_Template
+              spec:
+                connectorRef: ${TEMPLATE_CLONE_CONNECTOR_REF}
+                repoName: ${TEMPLATE_CLONE_REPO_NAME}
+                cloneDirectory: /template/
+                build:
+                  type: branch
+                  spec:
+                    branch: ${TEMPLATE_CLONE_BRANCH}
+          - step:
+              type: CookieCutter
+              name: Cookie Cutter
+              identifier: Cookie_Cutter
+              spec:
+                templateType: private
+                pathForTemplate: /template/repo
+                cookieCutterVariables:
+                  project_slug: <+execution.steps.Create_Repo.spec.repository>
+                verbose: false
+                overwriteIfExists: false
+          - step:
+              type: DirectPush
+              name: Push
+              identifier: Push
+              spec:
+                connectorType: ${GIT_CONNECTOR_TYPE}
+                forcePush: true
+                connectorRef: ${GIT_CONNECTOR_REF}
+                organization: <+execution.steps.Create_Repo.spec.organization>
+                repository: <+execution.steps.Create_Repo.spec.repository>
+                codeDirectory: /harness/<+execution.steps.Create_Repo.spec.repository>
+                branch: <+stage.variables.branch>
+      cloneCodebase: false
+      sharedPaths:
+        - /template/
+      caching:
+        enabled: false
+        paths: []
+      buildIntelligence:
+        enabled: false
+    variables:
+      - name: branch
+        type: String
+        description: ""
+        required: true
+        value: ${REPO_BRANCH}

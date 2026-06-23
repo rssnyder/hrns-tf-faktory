@@ -1,5 +1,5 @@
 variable "application_name" {
-  type = string
+  type    = string
   default = "{{ cookiecutter.project_slug }}"
 }
 

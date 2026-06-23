@@ -1,3 +1,16 @@
+// project for platform pipelines
+variable "platform_org_id" {
+  type        = string
+  description = "Organization ID for platform pipelines"
+  default     = "default"
+}
+
+variable "platform_project_name" {
+  type        = string
+  description = "Project name for platform pipelines"
+  default     = "Platform"
+}
+
 // k8s config for stage templates
 variable "kubernetes_connector" {
   type        = string
@@ -86,22 +99,58 @@ variable "checkov_fail_on_severity" {
   }
 }
 
-// project for module testing
-variable "module_faktory_org_id" {
-  type        = string
-  description = "Organization ID for module testing"
-  default     = "default"
-}
-
-variable "module_faktory_project_name" {
-  type        = string
-  description = "Project name for module testing"
-  default     = "Module Testing"
-}
-
 // generic
 variable "tags" {
   type        = map(string)
   description = "Tags to apply to all resources"
   default     = {}
+}
+
+// idp stage template for creating repos from a template
+
+// for creating new repos
+variable "git_connector_type" {
+  type        = string
+  description = "Git connector type"
+  default     = "Github"
+}
+
+variable "git_connector_ref" {
+  type        = string
+  description = "Git connector reference"
+}
+
+variable "is_personal_account" {
+  type        = bool
+  description = "Whether the git connector is a personal account"
+  default     = false
+}
+
+variable "git_org" {
+  type        = string
+  description = "Git organization"
+}
+
+// for cloning cookiecutter template
+variable "template_clone_connector_ref" {
+  type        = string
+  description = "Template clone connector reference"
+}
+
+variable "template_clone_repo_name" {
+  type        = string
+  description = "Template clone repo name"
+}
+
+variable "template_clone_branch" {
+  type        = string
+  description = "Template clone branch"
+  default     = "main"
+}
+
+// default branch for created repos
+variable "repo_branch" {
+  type        = string
+  description = "Repo branch"
+  default     = "main"
 }

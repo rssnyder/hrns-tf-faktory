@@ -1,0 +1,59 @@
+apiVersion: harness.io/v1
+kind: Workflow
+name: ${WORKFLOW_NAME}
+identifier: ${WORKFLOW_IDENTIFIER}
+type: repo
+owner: group:default/_account_admins
+metadata:
+  description: A template to request a new git repository to be created or managed
+  tags:
+    - repo-management
+    - bootstrap
+spec:
+  parameters:
+    - title: Request Git Repository
+      required:
+        - projectId
+        - repo_name
+      properties:
+        token:
+          title: Harness Token
+          type: string
+          ui:widget: password
+          ui:field: HarnessAuthToken
+        projectId:
+          title: Project Identifier
+          description: Harness Project Identifier
+          type: string
+          ui:field: HarnessProjectPicker
+        orgId:
+          title: Org Identifier
+          description: Harness org Identifier
+          type: string
+          ui:field: HarnessAutoOrgPicker
+        repo_name:
+          title: "Enter your Repository Name"
+          type: string
+          description: "Should not exceed 128 characters and must be unique within the Organization"
+          maxLength: 128
+        repo_description:
+          title: "Provide Repository Description"
+          type: string
+          description: "Optional description to assign to your repository"
+  steps:
+    - id: create_repo
+      name: Creating Repository
+      action: trigger:harness-custom-pipeline
+      input:
+        url: ${ACCOUNT_URL}/ng/account/${ACCOUNT_ID}/all/orgs/${PLATFORM_ORG_ID}/projects/${PLATFORM_PROJECT_ID}/pipelines/${CREATE_REPO_PIPELINE_ID}/pipeline-studio?storeType=INLINE
+        inputset:
+          repo_name: $${{ parameters.repo_name }}
+          repo_description: $${{ parameters.repo_description }}
+        apikey: $${{ parameters.token }}
+        showOutputVariables: true
+  output:
+    links:
+      - title: Access Repository
+        url: $${{ steps.create_repo.output['pipeline.stages.bootstrap.spec.execution.steps.Create_Repo.output.outputVariables.repositoryUrl']}}
+
+

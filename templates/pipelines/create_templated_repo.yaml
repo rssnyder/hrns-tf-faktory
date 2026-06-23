@@ -1,0 +1,37 @@
+pipeline:
+  name: ${PIPELINE_NAME}
+  identifier: ${PIPELINE_IDENTIFIER}
+  projectIdentifier: ${PROJECT_ID}
+  orgIdentifier: ${ORGANIZATION_ID}
+  tags:
+    ${indent(4, TAGS)}
+  stages:
+    - stage:
+        name: bootstrap
+        identifier: bootstrap
+        tags: {}
+        template:
+          templateRef: ${STAGE_TEMPLATE_REF}
+          versionLabel: ${STAGE_TEMPLATE_VERSION}
+          templateInputs:
+            type: IDP
+            spec:
+              execution:
+                steps:
+                  - step:
+                      identifier: Create_Repo
+                      type: CreateRepo
+                      spec:
+                        repository: <+pipeline.variables.repo_name.replace(" ", "-").replace("_", "-")>
+                        description: <+pipeline.variables.repo_description>
+  variables:
+    - name: repo_name
+      type: String
+      description: ""
+      required: true
+      value: <+input>
+    - name: repo_description
+      type: String
+      description: ""
+      required: false
+      value: <+input>

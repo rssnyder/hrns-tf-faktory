@@ -1,0 +1,9 @@
+kubernetes_connector = "account.buildfarm"
+
+git_connector_ref = "account.github_com"
+git_org           = "rssnyder"
+
+template_clone_connector_ref = "account.github_com"
+template_clone_repo_name     = "hrns-tf-faktory"
+
+is_personal_account = true

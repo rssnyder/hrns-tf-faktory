@@ -1,13 +1,3 @@
-data "harness_platform_organization" "module_faktory_org" {
-  identifier = var.module_faktory_org_id
-}
-
-resource "harness_platform_project" "module_faktory" {
-  identifier = replace(replace(var.module_faktory_project_name, " ", "_"), "-", "_")
-  name       = var.module_faktory_project_name
-  org_id     = data.harness_platform_organization.module_faktory_org.id
-}
-
 # module testing pipelines do not currently support using stage templates
 # resource "harness_platform_pipeline" "test" {
 #   org_id     = data.harness_platform_organization.module_faktory_org.id
@@ -67,8 +57,8 @@ resource "harness_platform_project" "module_faktory" {
 
 # for now we do inline pipelines
 resource "harness_platform_pipeline" "testing" {
-  org_id     = data.harness_platform_organization.module_faktory_org.id
-  project_id = harness_platform_project.module_faktory.identifier
+  org_id     = data.harness_platform_organization.platform_org.id
+  project_id = harness_platform_project.platform_project.identifier
 
   identifier  = "TF_Module_Testing"
   name        = "TF Module Testing"
@@ -79,8 +69,8 @@ resource "harness_platform_pipeline" "testing" {
     {
       PIPELINE_IDENTIFIER : "TF_Module_Testing"
       PIPELINE_NAME : "TF Module Testing"
-      ORGANIZATION_ID : data.harness_platform_organization.module_faktory_org.id
-      PROJECT_ID : harness_platform_project.module_faktory.identifier
+      ORGANIZATION_ID : data.harness_platform_organization.platform_org.id
+      PROJECT_ID : harness_platform_project.platform_project.identifier
       PIPELINE_DESCRIPTION : "Test infrastructure module changes"
 
       IACM_STAGE_INFRASTRUCTURE : "    ${indent(4, local.IACM_STAGE_INFRASTRUCTURE)}"
@@ -92,8 +82,8 @@ resource "harness_platform_pipeline" "testing" {
 }
 
 resource "harness_platform_pipeline" "integration_testing" {
-  org_id     = data.harness_platform_organization.module_faktory_org.id
-  project_id = harness_platform_project.module_faktory.identifier
+  org_id     = data.harness_platform_organization.platform_org.id
+  project_id = harness_platform_project.platform_project.identifier
 
   identifier  = "TF_Module_Integration_Testing"
   name        = "TF Module Integration Testing"
@@ -104,8 +94,8 @@ resource "harness_platform_pipeline" "integration_testing" {
     {
       PIPELINE_IDENTIFIER : "TF_Module_Integration_Testing"
       PIPELINE_NAME : "TF Module Integration Testing"
-      ORGANIZATION_ID : data.harness_platform_organization.module_faktory_org.id
-      PROJECT_ID : harness_platform_project.module_faktory.identifier
+      ORGANIZATION_ID : data.harness_platform_organization.platform_org.id
+      PROJECT_ID : harness_platform_project.platform_project.identifier
       PIPELINE_DESCRIPTION : "Test infrastructure module changes"
 
       IACM_STAGE_INFRASTRUCTURE : "    ${indent(4, local.IACM_STAGE_INFRASTRUCTURE)}"
@@ -134,6 +124,6 @@ module "this" {
     harness_platform_pipeline.integration_testing.identifier
   ]
 
-  org_id     = data.harness_platform_organization.module_faktory_org.id
-  project_id = harness_platform_project.module_faktory.identifier
+  org_id     = data.harness_platform_organization.platform_org.id
+  project_id = harness_platform_project.platform_project.identifier
 }

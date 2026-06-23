@@ -32,10 +32,10 @@ locals {
   )
 
   // Pipeline infrastructure template for IDP stages
-  #   IDP_STAGE_INFRASTRUCTURE = templatefile(
-  #     "${path.module}/templates/snippets/idp_infrastructure.yaml",
-  #     local.k8s_setup
-  #   )
+  IDP_STAGE_INFRASTRUCTURE = templatefile(
+    "${path.module}/templates/snippets/idp_infrastructure.yaml",
+    local.k8s_setup
+  )
 
   // TF step template
   TF_STEP = templatefile(
