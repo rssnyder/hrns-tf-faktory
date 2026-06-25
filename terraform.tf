@@ -3,7 +3,7 @@ terraform {
     // Harness Terraform provider for managing platform resources
     harness = {
       source  = "harness/harness"
-      version = ">= 0.41"
+      version = ">= 0.43.6"
     }
   }
 }
