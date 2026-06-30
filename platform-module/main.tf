@@ -14,12 +14,7 @@ locals {
   org_id     = data.harness_platform_organization.org.id
   project_id = var.project_id
 
-  required_tags = {
-    created_by = "Terraform"
-    managed_by = "hrns-tf-faktory"
-  }
-
-  common_tags       = merge(local.required_tags, var.tags)
+  common_tags       = merge(var.default_tags, var.tags)
   common_tags_tuple = [for k, v in local.common_tags : "${k}:${v}"]
 
   environments = var.create_cd_stack ? var.environments : {}

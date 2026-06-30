@@ -13,9 +13,17 @@ variable "project_id" {
 }
 
 variable "tags" {
-  description = "Common tags applied to platform resources (map key:value)"
+  description = "Additional tags applied to platform resources. Merged over default_tags (same key wins)."
   type        = map(string)
   default     = {}
+}
+
+variable "default_tags" {
+  description = "Baseline tags applied to all platform resources unless overridden by tags."
+  type        = map(string)
+  default = {
+    team = "platform"
+  }
 }
 
 # ---------------------------------------------------------------------------
