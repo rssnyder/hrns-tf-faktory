@@ -52,6 +52,40 @@ locals {
       "${env.name} ${var.deployment_type}"
     )
   }
+
+  task_definition_manifest_store_yaml = var.manifest_store_type == "Harness" ? <<-YAML
+type: Harness
+spec:
+  files:
+    - ${var.task_definition_manifest_path}
+YAML
+  : <<-YAML
+type: Github
+spec:
+  connectorRef: ${var.git_connector_ref}
+  gitFetchType: Branch
+  paths:
+    - ${var.task_definition_manifest_path}
+  repoName: ${var.git_repo_name}
+  branch: ${var.git_branch}
+YAML
+
+  service_definition_manifest_store_yaml = var.manifest_store_type == "Harness" ? <<-YAML
+type: Harness
+spec:
+  files:
+    - ${var.service_definition_manifest_path}
+YAML
+  : <<-YAML
+type: Github
+spec:
+  connectorRef: ${var.git_connector_ref}
+  gitFetchType: Branch
+  paths:
+    - ${var.service_definition_manifest_path}
+  repoName: ${var.git_repo_name}
+  branch: ${var.git_branch}
+YAML
 }
 
 resource "terraform_data" "platform_validation" {
@@ -64,6 +98,11 @@ resource "terraform_data" "platform_validation" {
     precondition {
       condition     = !var.create_infra_overrides || var.create_cd_stack
       error_message = "create_infra_overrides requires create_cd_stack to be true."
+    }
+
+    precondition {
+      condition     = !var.create_cd_stack || var.manifest_store_type != "Github" || (var.git_connector_ref != null && var.git_repo_name != null)
+      error_message = "git_connector_ref and git_repo_name are required when manifest_store_type is Github."
     }
   }
 }
@@ -123,23 +162,17 @@ resource "harness_platform_service" "platform" {
         spec:
           manifests:
             - manifest:
-                identifier: TaskDefinition
+                identifier: ${var.task_definition_manifest_identifier}
                 type: EcsTaskDefinition
                 spec:
                   store:
-                    type: Harness
-                    spec:
-                      files:
-                        - ${var.task_definition_manifest_path}
+${indent(20, local.task_definition_manifest_store_yaml)}
             - manifest:
-                identifier: ServiceDefinition
+                identifier: ${var.service_definition_manifest_identifier}
                 type: EcsServiceDefinition
                 spec:
                   store:
-                    type: Harness
-                    spec:
-                      files:
-                        - ${var.service_definition_manifest_path}
+${indent(20, local.service_definition_manifest_store_yaml)}
           artifacts:
             primary:
               primaryArtifactRef: <+input>
@@ -220,5 +253,15 @@ resource "harness_platform_service_overrides_v2" "infra" {
   type       = "INFRA_GLOBAL_OVERRIDE"
 
   yaml = <<-EOT
-EOT
+    variables:
+      - name: load_balancer
+        type: String
+        value: "${coalesce(try(each.value.load_balancer, null), var.default_load_balancer)}"
+      - name: prod_listener
+        type: String
+        value: "${coalesce(try(each.value.prod_listener, null), var.default_prod_listener)}"
+      - name: prod_listener_rule_arn
+        type: String
+        value: "${coalesce(try(each.value.prod_listener_rule_arn, null), var.default_prod_listener_rule_arn)}"
+  EOT
 }
