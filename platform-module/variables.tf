@@ -8,20 +8,8 @@ variable "org_id" {
 }
 
 variable "project_id" {
-  description = "Harness project identifier (created when create_project is true, otherwise must already exist)"
+  description = "Harness project identifier (must already exist)"
   type        = string
-}
-
-variable "project_name" {
-  description = "Harness project display name when create_project is true. Defaults to project_id."
-  type        = string
-  default     = null
-}
-
-variable "create_project" {
-  description = "Create a new Harness project. When false, project_id must reference an existing project."
-  type        = bool
-  default     = false
 }
 
 variable "tags" {

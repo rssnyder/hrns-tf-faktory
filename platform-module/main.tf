@@ -2,33 +2,24 @@
 # Platform CD bootstrap
 #
 # Optionally provisions:
-#   - Harness project (optional)
 #   - Cloud connector (AWS OIDC)
 #   - CD service, environments, infrastructure definitions, infra overrides (INFRA_GLOBAL_OVERRIDE)
+#
+# Requires an existing Harness project (project_id).
 # ---------------------------------------------------------------------------
 
 data "harness_platform_organization" "org" {
   identifier = var.org_id
 }
 
-resource "harness_platform_project" "platform" {
-  count = var.create_project ? 1 : 0
-
-  identifier = var.project_id
-  name       = coalesce(var.project_name, var.project_id)
-  org_id     = data.harness_platform_organization.org.id
-}
-
 data "harness_platform_project" "platform" {
-  count = var.create_project ? 0 : 1
-
   identifier = var.project_id
   org_id     = data.harness_platform_organization.org.id
 }
 
 locals {
   org_id     = data.harness_platform_organization.org.id
-  project_id = var.create_project ? harness_platform_project.platform[0].id : data.harness_platform_project.platform[0].id
+  project_id = data.harness_platform_project.platform.id
 
   common_tags       = merge(var.default_tags, var.tags)
   common_tags_tuple = [for k, v in local.common_tags : "${k}:${v}"]
