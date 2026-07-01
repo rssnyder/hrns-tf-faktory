@@ -1,11 +1,16 @@
 output "service_id" {
-  description = "Platform service resource ID"
+  description = "Service resource ID"
   value       = harness_platform_service.platform.id
 }
 
 output "service_identifier" {
-  description = "Platform service identifier"
+  description = "Service identifier (derived from name)"
   value       = harness_platform_service.platform.identifier
+}
+
+output "service_name" {
+  description = "Service name"
+  value       = harness_platform_service.platform.name
 }
 
 output "org_id" {

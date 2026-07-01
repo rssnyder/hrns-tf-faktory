@@ -2,6 +2,8 @@
 
 Creates the Harness CD service with ECS task and service definitions.
 
+The service identifier is automatically derived from the service name.
+
 ## Resources
 
 - `harness_platform_service` - CD service with ECS task/service definitions
@@ -17,9 +19,8 @@ module "service" {
   org_id     = "default"
   project_id = "platform_engineering"
 
-  # Service configuration
-  service_identifier = "platform_api"
-  service_name       = "Platform API Service"
+  # Service configuration (identifier: platform_api_service)
+  service_name = "Platform API Service"
 
   # Github manifest configuration
   manifest_store_type = "Github"
@@ -39,8 +40,7 @@ module "service" {
   org_id     = "default"
   project_id = "platform_engineering"
 
-  # Service configuration
-  service_identifier  = "platform_api_service"
+  # Service configuration (identifier: platform_api_service)
   service_name        = "Platform API Service"
   service_description = "Main API service for platform features"
   deployment_type     = "ECS"
@@ -78,8 +78,7 @@ module "service" {
   org_id     = "default"
   project_id = "platform_engineering"
 
-  service_identifier = "platform_worker"
-  service_name       = "Platform Worker Service"
+  service_name = "Platform Worker Service"  # Identifier: platform_worker_service
 
   # Use Harness File Store instead of Github
   manifest_store_type              = "Harness"
@@ -88,14 +87,26 @@ module "service" {
 }
 ```
 
+## Identifier Derivation
+
+The service identifier is automatically derived from `service_name`:
+- Converted to lowercase
+- Spaces replaced with underscores
+- Special characters removed or replaced with underscores
+
+**Examples:**
+- `"Platform API Service"` → `platform_api_service`
+- `"Worker-Service"` → `worker_service`
+- `"My Service v2"` → `my_service_v2`
+
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|----------|
 | org_id | Harness organization identifier | string | - | yes |
 | project_id | Harness project identifier | string | - | yes |
-| service_identifier | Service identifier | string | "platform_service" | no |
-| service_name | Service display name | string | "Platform Service" | no |
+| service_name | Service name (identifier auto-derived) | string | - | yes |
+| service_description | Service description | string | "Harness service managed by Terraform" | no |
 | manifest_store_type | Manifest store type (Github or Harness) | string | "Github" | no |
 | git_connector_ref | Git connector identifier (required if Github) | string | null | conditional |
 | git_repo_name | Git repository name (required if Github) | string | null | conditional |
@@ -105,6 +116,7 @@ module "service" {
 | Name | Description |
 |------|-------------|
 | service_id | Service resource ID |
-| service_identifier | Service identifier |
+| service_identifier | Service identifier (derived from name) |
+| service_name | Service name |
 | org_id | Organization ID |
 | project_id | Project ID |

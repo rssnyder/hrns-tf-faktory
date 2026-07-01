@@ -18,6 +18,9 @@ locals {
   common_tags       = merge(var.default_tags, var.tags)
   common_tags_tuple = [for k, v in local.common_tags : "${k}:${v}"]
 
+  # Auto-derive identifier from name (like aws-connector and infrastructure)
+  service_identifier = lower(replace(replace(var.service_name, " ", "_"), "/[^a-z0-9_]/", "_"))
+
   task_definition_manifest_store_yaml = var.manifest_store_type == "Harness" ? (
     <<-YAML
 type: Harness
@@ -73,7 +76,7 @@ resource "terraform_data" "validation" {
 # ---------------------------------------------------------------------------
 
 resource "harness_platform_service" "platform" {
-  identifier  = var.service_identifier
+  identifier  = local.service_identifier
   name        = var.service_name
   description = var.service_description
   org_id      = local.org_id
@@ -83,7 +86,7 @@ resource "harness_platform_service" "platform" {
   yaml = <<-EOT
     service:
       name: ${var.service_name}
-      identifier: ${var.service_identifier}
+      identifier: ${local.service_identifier}
       orgIdentifier: ${local.org_id}
       projectIdentifier: ${local.project_id}
       serviceDefinition:

@@ -30,22 +30,15 @@ variable "default_tags" {
 # CD service
 # ---------------------------------------------------------------------------
 
-variable "service_identifier" {
-  description = "Harness service identifier"
-  type        = string
-  default     = "platform_service"
-}
-
 variable "service_name" {
-  description = "Harness service display name"
+  description = "Harness service name (identifier will be auto-derived from this)"
   type        = string
-  default     = "Platform Service"
 }
 
 variable "service_description" {
   description = "Harness service description"
   type        = string
-  default     = "Platform service managed by Terraform"
+  default     = "Harness service managed by Terraform"
 }
 
 variable "deployment_type" {

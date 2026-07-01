@@ -30,13 +30,18 @@ variable "default_tags" {
 # Infrastructure configuration
 # ---------------------------------------------------------------------------
 
+variable "environment_id" {
+  description = "Existing Harness environment identifier (must already exist)"
+  type        = string
+}
+
 variable "aws_connector_ref" {
   description = "AWS connector reference for infrastructure (use connector identifier for project-scoped connectors)"
   type        = string
 }
 
 variable "aws_region" {
-  description = "AWS region for infrastructure definitions"
+  description = "AWS region for infrastructure definition"
   type        = string
   default     = "us-east-1"
 }
@@ -47,26 +52,20 @@ variable "deployment_type" {
   default     = "ECS"
 }
 
-variable "default_cluster" {
-  description = "Default cluster name when not set per environment"
+variable "cluster" {
+  description = "ECS cluster name"
   type        = string
   default     = "default"
 }
 
-variable "cluster_overrides" {
-  description = "Per-environment cluster overrides (keyed by environment identifier)"
-  type        = map(string)
-  default     = {}
-}
-
-variable "infrastructure_identifier_suffix" {
-  description = "Suffix appended to environment key for infrastructure identifier when not explicitly set"
+variable "infrastructure_name" {
+  description = "Infrastructure name (identifier will be auto-derived from this, or defaults to '<environment_id> Infrastructure')"
   type        = string
-  default     = "_infra"
+  default     = null
 }
 
 variable "allow_simultaneous_deployments" {
-  description = "Allow simultaneous deployments on infrastructure definitions"
+  description = "Allow simultaneous deployments on infrastructure definition"
   type        = bool
   default     = false
 }
@@ -98,26 +97,29 @@ variable "default_prod_listener" {
 }
 
 variable "default_prod_listener_rule_arn" {
-  description = "Default prod_listener_rule_arn infra override ARN when not set per environment"
+  description = "Default prod_listener_rule_arn infra override ARN when not set"
   type        = string
   default     = "arn:aws:elasticloadbalancing:us-east-1:000000000000:listener-rule/app/example/alb-id/abc123/def456/ghi789"
 }
 
-variable "infrastructure_configs" {
-  description = "Infrastructure configurations per environment. Map key must be an existing environment identifier."
-  type = map(object({
-    cluster                   = optional(string)
-    load_balancer             = optional(string)
-    prod_listener             = optional(string)
-    prod_listener_rule_arn    = optional(string)
-    infrastructure_identifier = optional(string)
-    infrastructure_name       = optional(string)
-  }))
+# ---------------------------------------------------------------------------
+# Infrastructure override values
+# ---------------------------------------------------------------------------
 
-  default = {
-    dev     = {}
-    testing = {}
-    stage   = {}
-    prod    = {}
-  }
+variable "load_balancer" {
+  description = "Load balancer name for infrastructure override"
+  type        = string
+  default     = null
+}
+
+variable "prod_listener" {
+  description = "Production listener ARN for infrastructure override"
+  type        = string
+  default     = null
+}
+
+variable "prod_listener_rule_arn" {
+  description = "Production listener rule ARN for infrastructure override"
+  type        = string
+  default     = null
 }

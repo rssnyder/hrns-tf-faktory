@@ -17,28 +17,30 @@ The connector identifier is automatically derived from the connector name.
 - `aws_connector_identifier` - Connector identifier for referencing
 
 ### 2. infrastructure
-Creates Harness infrastructure definitions and infrastructure-specific overrides for existing environments.
+Creates a single Harness infrastructure definition and optional infrastructure-specific overrides for one existing environment.
 
-**Note:** Does NOT create environments. Environment identifiers must already exist.
+**Note:** Does NOT create environments. Creates ONE infrastructure per module instance.
 
 **Resources:**
-- `harness_platform_infrastructure` - Infrastructure definitions per environment
-- `harness_platform_service_overrides_v2` - INFRA_GLOBAL_OVERRIDE per environment (optional)
+- `harness_platform_infrastructure` - Single infrastructure definition
+- `harness_platform_service_overrides_v2` - INFRA_GLOBAL_OVERRIDE (optional)
 
 **Key Outputs:**
-- `infrastructure_ids` - Infrastructure definition resource IDs
-- `infrastructure_identifiers` - Infrastructure identifiers
-- `infra_override_ids` - Infrastructure override resource IDs
+- `infrastructure_id` - Infrastructure definition resource ID
+- `infrastructure_identifier` - Infrastructure identifier
+- `infra_override_id` - Infrastructure override resource ID
 
 ### 3. service
 Creates the Harness CD service with ECS task and service definitions.
+
+The service identifier is automatically derived from the service name.
 
 **Resources:**
 - `harness_platform_service` - CD service with ECS manifests
 
 **Key Outputs:**
 - `service_id` - Service resource ID
-- `service_identifier` - Service identifier
+- `service_identifier` - Service identifier (auto-derived)
 
 ## Usage Example
 
@@ -57,25 +59,31 @@ module "aws_connector" {
   aws_region         = "us-east-1"
 }
 
-# 2. Infrastructure (assumes environments already exist)
-module "infrastructure" {
+# 2. Infrastructure (one per environment - assumes environment exists)
+module "dev_infrastructure" {
   source = "./platform-module/infrastructure"
 
-  org_id     = "default"
-  project_id = "platform_engineering"
+  org_id              = "default"
+  project_id          = "platform_engineering"
+  environment_id      = "dev"  # Must already exist
+  infrastructure_name = "Dev Infrastructure"  # Identifier: dev_infrastructure
 
   aws_connector_ref = module.aws_connector.aws_connector_identifier
   aws_region        = "us-east-1"
+  cluster           = "dev-cluster"
+}
 
-  # Keys must match existing environment identifiers
-  infrastructure_configs = {
-    dev = {
-      cluster = "dev-cluster"
-    }
-    prod = {
-      cluster = "prod-cluster"
-    }
-  }
+module "prod_infrastructure" {
+  source = "./platform-module/infrastructure"
+
+  org_id              = "default"
+  project_id          = "platform_engineering"
+  environment_id      = "prod"  # Must already exist
+  infrastructure_name = "Prod Infrastructure"  # Identifier: prod_infrastructure
+
+  aws_connector_ref = module.aws_connector.aws_connector_identifier
+  aws_region        = "us-east-1"
+  cluster           = "prod-cluster"
 }
 
 # 3. Service
@@ -85,8 +93,7 @@ module "service" {
   org_id     = "default"
   project_id = "platform_engineering"
 
-  service_identifier = "platform_api"
-  service_name       = "Platform API"
+  service_name = "Platform API"  # Identifier: platform_api
 
   manifest_store_type = "Github"
   git_connector_ref   = "github_connector"
@@ -140,61 +147,67 @@ module "aws_connector" {
   retry_count         = 3
 }
 
-# 2. Create Infrastructure Definitions (assumes environments already exist)
-module "infrastructure" {
+# 2. Create Infrastructure Definitions (one per environment)
+module "dev_infrastructure" {
   source = "./platform-module/infrastructure"
 
-  org_id     = local.org_id
-  project_id = local.project_id
+  org_id              = local.org_id
+  project_id          = local.project_id
+  environment_id      = "dev"  # Must already exist
+  infrastructure_name = "Dev API Infrastructure"  # Identifier: dev_api_infrastructure
 
-  aws_connector_ref = module.aws_connector.aws_connector_identifier
-  aws_region        = local.region
-  deployment_type     = "ECS"
-
-  default_cluster                = "default-ecs-cluster"
+  aws_connector_ref              = module.aws_connector.aws_connector_identifier
+  aws_region                     = local.region
+  deployment_type                = "ECS"
+  cluster                        = "dev-ecs-cluster"
   allow_simultaneous_deployments = false
 
   tags = {
     managed_by = "terraform"
-    project    = "platform-api"
-  }
-
-  cluster_overrides = {
-    prod = "production-ecs-cluster"
+    env        = "dev"
   }
 
   # Enable infrastructure overrides
   create_infra_overrides = true
+  load_balancer          = "dev-api-alb-12345"
+  prod_listener          = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/app/dev-api-alb/abc123/def456"
+  prod_listener_rule_arn = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener-rule/app/dev-api-alb/abc123/def456/ghi789"
 
-  # Default override values
+  # Default values
   default_load_balancer          = "default-platform-alb"
   default_prod_listener          = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/app/default-alb/abc123/def456"
   default_prod_listener_rule_arn = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener-rule/app/default-alb/abc123/def456/ghi789"
+}
 
-  # Keys must match existing environment identifiers
-  infrastructure_configs = {
-    dev = {
-      cluster                   = "dev-ecs-cluster"
-      infrastructure_identifier = "dev_infra"
-      load_balancer             = "dev-api-alb-12345"
-      prod_listener             = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/app/dev-api-alb/abc123/def456"
-      prod_listener_rule_arn    = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener-rule/app/dev-api-alb/abc123/def456/ghi789"
-    }
-    testing = {
-      cluster       = "test-ecs-cluster"
-      load_balancer = "test-api-alb-12345"
-    }
-    stage = {
-      cluster       = "stage-ecs-cluster"
-      load_balancer = "stage-api-alb-12345"
-    }
-    prod = {
-      cluster                = "prod-ecs-cluster"
-      load_balancer          = "prod-api-alb-12345"
-      prod_listener          = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/app/prod-api-alb/abc123/def456"
-      prod_listener_rule_arn = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener-rule/app/prod-api-alb/abc123/def456/ghi789"
-    }
+module "prod_infrastructure" {
+  source = "./platform-module/infrastructure"
+
+  org_id              = local.org_id
+  project_id          = local.project_id
+  environment_id      = "prod"  # Must already exist
+  infrastructure_name = "Production API Infrastructure"  # Identifier: production_api_infrastructure
+
+  aws_connector_ref              = module.aws_connector.aws_connector_identifier
+  aws_region                     = local.region
+  deployment_type                = "ECS"
+  cluster                        = "prod-ecs-cluster"
+  allow_simultaneous_deployments = false
+
+  tags = {
+    managed_by = "terraform"
+    env        = "production"
   }
+
+  # Enable infrastructure overrides
+  create_infra_overrides = true
+  load_balancer          = "prod-api-alb-12345"
+  prod_listener          = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/app/prod-api-alb/abc123/def456"
+  prod_listener_rule_arn = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener-rule/app/prod-api-alb/abc123/def456/ghi789"
+
+  # Default values
+  default_load_balancer          = "default-platform-alb"
+  default_prod_listener          = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/app/default-alb/abc123/def456"
+  default_prod_listener_rule_arn = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener-rule/app/default-alb/abc123/def456/ghi789"
 }
 
 # 3. Create Service
@@ -204,8 +217,7 @@ module "service" {
   org_id     = local.org_id
   project_id = local.project_id
 
-  service_identifier  = "platform_api_service"
-  service_name        = "Platform API Service"
+  service_name        = "Platform API Service"  # Identifier: platform_api_service
   service_description = "Main API service for platform features"
   deployment_type     = "ECS"
 
@@ -223,9 +235,14 @@ output "connector_id" {
   value       = module.aws_connector.aws_connector_identifier
 }
 
-output "infrastructure_ids" {
-  description = "All infrastructure identifiers"
-  value       = module.infrastructure.infrastructure_identifiers
+output "dev_infrastructure_id" {
+  description = "Dev infrastructure identifier"
+  value       = module.dev_infrastructure.infrastructure_identifier
+}
+
+output "prod_infrastructure_id" {
+  description = "Prod infrastructure identifier"
+  value       = module.prod_infrastructure.infrastructure_identifier
 }
 
 output "service_id" {

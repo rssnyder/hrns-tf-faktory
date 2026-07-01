@@ -1,16 +1,26 @@
-output "infrastructure_ids" {
-  description = "Infrastructure definition resource IDs keyed by environment identifier"
-  value       = { for k, infra in harness_platform_infrastructure.platform : k => infra.id }
+output "infrastructure_id" {
+  description = "Infrastructure definition resource ID"
+  value       = harness_platform_infrastructure.this.id
 }
 
-output "infrastructure_identifiers" {
-  description = "Infrastructure definition identifiers keyed by environment identifier"
-  value       = { for k, infra in harness_platform_infrastructure.platform : k => infra.identifier }
+output "infrastructure_identifier" {
+  description = "Infrastructure definition identifier"
+  value       = harness_platform_infrastructure.this.identifier
 }
 
-output "infra_override_ids" {
-  description = "INFRA_GLOBAL_OVERRIDE IDs keyed by environment identifier"
-  value       = { for k, override in harness_platform_service_overrides_v2.infra : k => override.id }
+output "infrastructure_name" {
+  description = "Infrastructure definition name"
+  value       = harness_platform_infrastructure.this.name
+}
+
+output "infra_override_id" {
+  description = "INFRA_GLOBAL_OVERRIDE resource ID (if created)"
+  value       = var.create_infra_overrides ? harness_platform_service_overrides_v2.this[0].id : null
+}
+
+output "environment_id" {
+  description = "Environment identifier this infrastructure is associated with"
+  value       = var.environment_id
 }
 
 output "org_id" {
