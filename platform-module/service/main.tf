@@ -18,13 +18,15 @@ locals {
   common_tags       = merge(var.default_tags, var.tags)
   common_tags_tuple = [for k, v in local.common_tags : "${k}:${v}"]
 
-  task_definition_manifest_store_yaml = var.manifest_store_type == "Harness" ? <<-YAML
+  task_definition_manifest_store_yaml = var.manifest_store_type == "Harness" ? (
+    <<-YAML
 type: Harness
 spec:
   files:
     - ${var.task_definition_manifest_path}
 YAML
-  : <<-YAML
+    ) : (
+    <<-YAML
 type: Github
 spec:
   connectorRef: ${var.git_connector_ref}
@@ -34,14 +36,17 @@ spec:
   repoName: ${var.git_repo_name}
   branch: ${var.git_branch}
 YAML
+  )
 
-  service_definition_manifest_store_yaml = var.manifest_store_type == "Harness" ? <<-YAML
+  service_definition_manifest_store_yaml = var.manifest_store_type == "Harness" ? (
+    <<-YAML
 type: Harness
 spec:
   files:
     - ${var.service_definition_manifest_path}
 YAML
-  : <<-YAML
+    ) : (
+    <<-YAML
 type: Github
 spec:
   connectorRef: ${var.git_connector_ref}
@@ -51,6 +56,7 @@ spec:
   repoName: ${var.git_repo_name}
   branch: ${var.git_branch}
 YAML
+  )
 }
 
 resource "terraform_data" "validation" {

@@ -115,9 +115,9 @@ variable "infrastructure_configs" {
   }))
 
   default = {
-    dev = {}
+    dev     = {}
     testing = {}
-    stage = {}
-    prod = {}
+    stage   = {}
+    prod    = {}
   }
 }
