@@ -30,13 +30,13 @@ variable "default_tags" {
 # Infrastructure configuration
 # ---------------------------------------------------------------------------
 
-variable "cloud_connector_ref" {
-  description = "Cloud connector reference for infrastructure (use connector identifier for project-scoped connectors)"
+variable "aws_connector_ref" {
+  description = "AWS connector reference for infrastructure (use connector identifier for project-scoped connectors)"
   type        = string
 }
 
-variable "cloud_region" {
-  description = "Cloud region for infrastructure definitions"
+variable "aws_region" {
+  description = "AWS region for infrastructure definitions"
   type        = string
   default     = "us-east-1"
 }
@@ -103,11 +103,9 @@ variable "default_prod_listener_rule_arn" {
   default     = "arn:aws:elasticloadbalancing:us-east-1:000000000000:listener-rule/app/example/alb-id/abc123/def456/ghi789"
 }
 
-variable "environments" {
-  description = "Harness CD environments to create. Map key is the environment identifier."
+variable "infrastructure_configs" {
+  description = "Infrastructure configurations per environment. Map key must be an existing environment identifier."
   type = map(object({
-    name                      = string
-    type                      = string
     cluster                   = optional(string)
     load_balancer             = optional(string)
     prod_listener             = optional(string)
@@ -117,21 +115,9 @@ variable "environments" {
   }))
 
   default = {
-    dev = {
-      name = "Dev"
-      type = "PreProduction"
-    }
-    testing = {
-      name = "Testing"
-      type = "PreProduction"
-    }
-    stage = {
-      name = "Stage"
-      type = "PreProduction"
-    }
-    prod = {
-      name = "Prod"
-      type = "Production"
-    }
+    dev = {}
+    testing = {}
+    stage = {}
+    prod = {}
   }
 }

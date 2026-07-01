@@ -7,23 +7,25 @@ This module has been split into three focused sub-modules:
 ### 1. aws-connector
 Creates an AWS OIDC connector for Harness to authenticate with AWS.
 
+The connector identifier is automatically derived from the connector name.
+
 **Resources:**
 - `harness_platform_connector_aws` - AWS connector with OIDC authentication
 
 **Key Outputs:**
-- `cloud_connector_id` - Resource ID
-- `cloud_connector_identifier` - Connector identifier for referencing
+- `aws_connector_id` - Resource ID
+- `aws_connector_identifier` - Connector identifier for referencing
 
 ### 2. infrastructure
-Creates Harness environments, infrastructure definitions, and infrastructure-specific overrides.
+Creates Harness infrastructure definitions and infrastructure-specific overrides for existing environments.
+
+**Note:** Does NOT create environments. Environment identifiers must already exist.
 
 **Resources:**
-- `harness_platform_environment` - CD environments (dev, testing, stage, prod)
 - `harness_platform_infrastructure` - Infrastructure definitions per environment
 - `harness_platform_service_overrides_v2` - INFRA_GLOBAL_OVERRIDE per environment (optional)
 
 **Key Outputs:**
-- `environment_ids` - Environment resource IDs
 - `infrastructure_ids` - Infrastructure definition resource IDs
 - `infrastructure_identifiers` - Infrastructure identifiers
 - `infra_override_ids` - Infrastructure override resource IDs
@@ -50,29 +52,28 @@ module "aws_connector" {
   org_id     = "default"
   project_id = "platform_engineering"
 
-  cloud_connector_identifier = "aws_oidc"
-  iam_role_arn              = "arn:aws:iam::123456789012:role/harness-oidc-role"
-  cloud_region              = "us-east-1"
+  aws_connector_name = "AWS Production"  # Identifier: aws_production
+  iam_role_arn       = "arn:aws:iam::123456789012:role/harness-oidc-role"
+  aws_region         = "us-east-1"
 }
 
-# 2. Infrastructure
+# 2. Infrastructure (assumes environments already exist)
 module "infrastructure" {
   source = "./platform-module/infrastructure"
 
   org_id     = "default"
   project_id = "platform_engineering"
 
-  cloud_connector_ref = module.aws_connector.cloud_connector_identifier
-  cloud_region        = "us-east-1"
+  aws_connector_ref = module.aws_connector.aws_connector_identifier
+  aws_region        = "us-east-1"
 
-  environments = {
+  # Keys must match existing environment identifiers
+  infrastructure_configs = {
     dev = {
-      name = "Development"
-      type = "PreProduction"
+      cluster = "dev-cluster"
     }
     prod = {
-      name = "Production"
-      type = "Production"
+      cluster = "prod-cluster"
     }
   }
 }
@@ -126,13 +127,12 @@ module "aws_connector" {
   org_id     = local.org_id
   project_id = local.project_id
 
-  cloud_connector_identifier  = "aws_production_oidc"
-  cloud_connector_name        = "AWS Production OIDC"
-  cloud_connector_description = "Production AWS connector using OIDC"
-  cloud_connector_tags        = ["env:production", "managed-by:terraform"]
+  aws_connector_name        = "AWS Production OIDC"  # Identifier: aws_production_oidc
+  aws_connector_description = "Production AWS connector using OIDC"
+  aws_connector_tags        = ["env:production", "managed-by:terraform"]
 
   iam_role_arn       = "arn:aws:iam::123456789012:role/harness-prod-oidc-role"
-  cloud_region       = local.region
+  aws_region         = local.region
   delegate_selectors = ["prod-delegate"]
 
   execute_on_delegate = true
@@ -140,15 +140,15 @@ module "aws_connector" {
   retry_count         = 3
 }
 
-# 2. Create Environments and Infrastructure Definitions
+# 2. Create Infrastructure Definitions (assumes environments already exist)
 module "infrastructure" {
   source = "./platform-module/infrastructure"
 
   org_id     = local.org_id
   project_id = local.project_id
 
-  cloud_connector_ref = module.aws_connector.cloud_connector_identifier
-  cloud_region        = local.region
+  aws_connector_ref = module.aws_connector.aws_connector_identifier
+  aws_region        = local.region
   deployment_type     = "ECS"
 
   default_cluster                = "default-ecs-cluster"
@@ -171,10 +171,9 @@ module "infrastructure" {
   default_prod_listener          = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/app/default-alb/abc123/def456"
   default_prod_listener_rule_arn = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener-rule/app/default-alb/abc123/def456/ghi789"
 
-  environments = {
+  # Keys must match existing environment identifiers
+  infrastructure_configs = {
     dev = {
-      name                      = "Development"
-      type                      = "PreProduction"
       cluster                   = "dev-ecs-cluster"
       infrastructure_identifier = "dev_infra"
       load_balancer             = "dev-api-alb-12345"
@@ -182,20 +181,14 @@ module "infrastructure" {
       prod_listener_rule_arn    = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener-rule/app/dev-api-alb/abc123/def456/ghi789"
     }
     testing = {
-      name          = "Testing"
-      type          = "PreProduction"
       cluster       = "test-ecs-cluster"
       load_balancer = "test-api-alb-12345"
     }
     stage = {
-      name          = "Staging"
-      type          = "PreProduction"
       cluster       = "stage-ecs-cluster"
       load_balancer = "stage-api-alb-12345"
     }
     prod = {
-      name                   = "Production"
-      type                   = "Production"
       cluster                = "prod-ecs-cluster"
       load_balancer          = "prod-api-alb-12345"
       prod_listener          = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/app/prod-api-alb/abc123/def456"
@@ -227,12 +220,12 @@ module "service" {
 # Outputs
 output "connector_id" {
   description = "AWS connector identifier"
-  value       = module.aws_connector.cloud_connector_identifier
+  value       = module.aws_connector.aws_connector_identifier
 }
 
-output "environment_ids" {
-  description = "All environment identifiers"
-  value       = module.infrastructure.environment_identifiers
+output "infrastructure_ids" {
+  description = "All infrastructure identifiers"
+  value       = module.infrastructure.infrastructure_identifiers
 }
 
 output "service_id" {
@@ -246,10 +239,11 @@ output "service_id" {
 The original module has been preserved in the parent directory files. To migrate:
 
 1. Replace the single module call with three separate module calls (as shown above)
-2. Update any references to outputs to use the appropriate sub-module output
-3. Infrastructure overrides now live in the `infrastructure` module (not `service`)
+2. **Important:** The infrastructure module no longer creates environments - only infrastructure definitions
+3. Environment identifiers passed to `infrastructure_configs` must already exist in Harness
+4. Infrastructure overrides now live in the `infrastructure` module (not `service`)
 
 ## Dependencies
 
-- `infrastructure` depends on `aws-connector` (needs connector reference)
+- `infrastructure` depends on `aws-connector` (needs connector reference) and existing environments
 - `service` is independent - no dependencies on other modules

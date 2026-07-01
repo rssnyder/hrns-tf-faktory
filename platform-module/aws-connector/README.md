@@ -2,6 +2,8 @@
 
 Creates an AWS OIDC connector for Harness to authenticate with AWS.
 
+The connector identifier is automatically derived from the connector name by converting to lowercase and replacing special characters with underscores.
+
 ## Resources
 
 - `harness_platform_connector_aws` - AWS connector with OIDC authentication
@@ -14,13 +16,12 @@ Creates an AWS OIDC connector for Harness to authenticate with AWS.
 module "aws_connector" {
   source = "./aws-connector"
 
-  org_id     = "myorg"
-  project_id = "myproject"
+  org_id     = "default"
+  project_id = "platform_engineering"
 
-  cloud_connector_identifier = "aws_oidc"
-  cloud_connector_name       = "AWS OIDC Connector"
-  iam_role_arn              = "arn:aws:iam::123456789012:role/harness-oidc-role"
-  cloud_region              = "us-east-1"
+  aws_connector_name = "AWS Production"  # Identifier will be: aws_production
+  iam_role_arn       = "arn:aws:iam::123456789012:role/harness-oidc-role"
+  aws_region         = "us-east-1"
 }
 ```
 
@@ -35,14 +36,13 @@ module "aws_connector" {
   project_id = "platform_engineering"
 
   # Connector configuration
-  cloud_connector_identifier = "aws_production_oidc"
-  cloud_connector_name       = "AWS Production OIDC Connector"
-  cloud_connector_description = "Production AWS connector using OIDC for secure authentication"
-  cloud_connector_tags       = ["env:production", "team:platform"]
+  aws_connector_name        = "AWS Production OIDC"  # Identifier: aws_production_oidc
+  aws_connector_description = "Production AWS connector using OIDC for secure authentication"
+  aws_connector_tags        = ["env:production", "team:platform"]
 
   # AWS configuration
   iam_role_arn       = "arn:aws:iam::123456789012:role/harness-prod-oidc-role"
-  cloud_region       = "us-east-1"
+  aws_region         = "us-east-1"
   delegate_selectors = ["prod-delegate", "us-east-1-delegate"]
 
   # Execution options
@@ -55,9 +55,21 @@ module "aws_connector" {
 
 # Output the connector identifier for use in other modules
 output "connector_id" {
-  value = module.aws_connector.cloud_connector_identifier
+  value = module.aws_connector.aws_connector_identifier
 }
 ```
+
+## Identifier Derivation
+
+The connector identifier is automatically derived from `aws_connector_name`:
+- Converted to lowercase
+- Spaces replaced with underscores
+- Special characters removed or replaced with underscores
+
+**Examples:**
+- `"AWS Production"` → `aws_production`
+- `"AWS-DEV-OIDC"` → `aws_dev_oidc`
+- `"My AWS Connector!"` → `my_aws_connector_`
 
 ## Inputs
 
@@ -65,15 +77,17 @@ output "connector_id" {
 |------|-------------|------|---------|----------|
 | org_id | Harness organization identifier | string | - | yes |
 | project_id | Harness project identifier | string | - | yes |
-| cloud_connector_identifier | Connector identifier | string | "cloud_connector" | no |
+| aws_connector_name | AWS connector display name | string | - | yes |
 | iam_role_arn | AWS IAM role ARN for OIDC | string | - | yes |
-| cloud_region | AWS region | string | "us-east-1" | no |
+| aws_region | AWS region | string | "us-east-1" | no |
+| aws_connector_description | Connector description | string | "AWS connector using Harness OIDC authentication" | no |
+| delegate_selectors | Delegate selectors | set(string) | [] | no |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| cloud_connector_id | Cloud connector resource ID |
-| cloud_connector_identifier | Cloud connector identifier (use this in infrastructure module) |
+| aws_connector_id | AWS connector resource ID |
+| aws_connector_identifier | AWS connector identifier (use this in infrastructure module) |
 | org_id | Organization ID |
 | project_id | Project ID |

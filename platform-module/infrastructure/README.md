@@ -1,10 +1,11 @@
 # Infrastructure Sub-module
 
-Creates Harness environments, infrastructure definitions, and infrastructure-specific overrides.
+Creates Harness infrastructure definitions and infrastructure-specific overrides for existing environments.
+
+**Note:** This module does NOT create environments. Environment identifiers must already exist.
 
 ## Resources
 
-- `harness_platform_environment` - CD environments
 - `harness_platform_infrastructure` - Infrastructure definitions per environment
 - `harness_platform_service_overrides_v2` - INFRA_GLOBAL_OVERRIDE per environment (optional)
 
@@ -20,18 +21,17 @@ module "infrastructure" {
   project_id = "platform_engineering"
 
   # Reference the connector from aws-connector module
-  cloud_connector_ref = module.aws_connector.cloud_connector_identifier
-  cloud_region        = "us-east-1"
+  aws_connector_ref = module.aws_connector.aws_connector_identifier
+  aws_region        = "us-east-1"
   default_cluster     = "production-ecs-cluster"
 
-  environments = {
+  # Map keys must match existing environment identifiers
+  infrastructure_configs = {
     dev = {
-      name = "Development"
-      type = "PreProduction"
+      cluster = "dev-cluster"
     }
     prod = {
-      name = "Production"
-      type = "Production"
+      cluster = "prod-cluster"
     }
   }
 }
@@ -47,15 +47,15 @@ module "infrastructure" {
   org_id     = "default"
   project_id = "platform_engineering"
 
-  # Cloud configuration
-  cloud_connector_ref = module.aws_connector.cloud_connector_identifier
-  cloud_region        = "us-east-1"
+  # AWS configuration
+  aws_connector_ref = module.aws_connector.aws_connector_identifier
+  aws_region        = "us-east-1"
   deployment_type     = "ECS"
 
   # Default settings
-  default_cluster                = "default-ecs-cluster"
+  default_cluster                  = "default-ecs-cluster"
   infrastructure_identifier_suffix = "_infrastructure"
-  allow_simultaneous_deployments = false
+  allow_simultaneous_deployments   = false
 
   # Tags
   tags = {
@@ -80,12 +80,11 @@ module "infrastructure" {
   default_prod_listener          = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/app/default-alb/abc123/def456"
   default_prod_listener_rule_arn = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener-rule/app/default-alb/abc123/def456/ghi789"
 
-  # Environment definitions with per-environment overrides
-  environments = {
+  # Infrastructure configurations per environment
+  # Keys must match existing environment identifiers
+  infrastructure_configs = {
     dev = {
-      name                      = "Development"
-      type                      = "PreProduction"
-      cluster                   = "dev-ecs-cluster"
+      cluster                = "dev-ecs-cluster"
       infrastructure_identifier = "dev_infra"
       infrastructure_name       = "Development ECS"
       load_balancer             = "dev-api-alb-12345"
@@ -93,20 +92,14 @@ module "infrastructure" {
       prod_listener_rule_arn    = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener-rule/app/dev-api-alb/abc123/def456/ghi789"
     }
     testing = {
-      name              = "Testing"
-      type              = "PreProduction"
-      load_balancer     = "test-api-alb-12345"
+      load_balancer = "test-api-alb-12345"
       # Uses default_cluster and default listener values
     }
     stage = {
-      name          = "Staging"
-      type          = "PreProduction"
       cluster       = "stage-ecs-cluster"
       load_balancer = "stage-api-alb-12345"
     }
     prod = {
-      name                   = "Production"
-      type                   = "Production"
       cluster                = "prod-ecs-cluster"
       load_balancer          = "prod-api-alb-12345"
       prod_listener          = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/app/prod-api-alb/abc123/def456"
@@ -122,19 +115,19 @@ module "infrastructure" {
 |------|-------------|------|---------|----------|
 | org_id | Harness organization identifier | string | - | yes |
 | project_id | Harness project identifier | string | - | yes |
-| cloud_connector_ref | Cloud connector identifier | string | - | yes |
-| cloud_region | AWS region | string | "us-east-1" | no |
+| aws_connector_ref | AWS connector identifier | string | - | yes |
+| aws_region | AWS region | string | "us-east-1" | no |
 | default_cluster | Default ECS cluster name | string | "default" | no |
 | create_infra_overrides | Create infrastructure overrides | bool | true | no |
 | default_load_balancer | Default load balancer for overrides | string | - | no |
-| environments | Environment configurations | map(object) | See variables.tf | no |
+| infrastructure_configs | Infrastructure configurations per environment | map(object) | {} | yes |
+
+**Important:** Keys in `infrastructure_configs` must match existing environment identifiers. This module does not create environments.
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| environment_ids | Environment resource IDs |
-| environment_identifiers | Environment identifiers |
 | infrastructure_ids | Infrastructure definition resource IDs |
 | infrastructure_identifiers | Infrastructure identifiers |
 | infra_override_ids | Infrastructure override resource IDs (if enabled) |

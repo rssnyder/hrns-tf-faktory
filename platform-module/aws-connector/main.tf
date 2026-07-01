@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# AWS Cloud Connector (OIDC)
+# AWS Connector (OIDC)
 # ---------------------------------------------------------------------------
 
 data "harness_platform_organization" "org" {
@@ -14,15 +14,18 @@ data "harness_platform_project" "platform" {
 locals {
   org_id     = data.harness_platform_organization.org.id
   project_id = data.harness_platform_project.platform.id
+
+  # Derive identifier from name by converting to lowercase and replacing special chars with underscores
+  aws_connector_identifier = lower(replace(replace(var.aws_connector_name, " ", "_"), "/[^a-z0-9_]/", "_"))
 }
 
-resource "harness_platform_connector_aws" "cloud" {
-  identifier          = var.cloud_connector_identifier
-  name                = var.cloud_connector_name
-  description         = var.cloud_connector_description
+resource "harness_platform_connector_aws" "aws" {
+  identifier          = local.aws_connector_identifier
+  name                = var.aws_connector_name
+  description         = var.aws_connector_description
   org_id              = local.org_id
   project_id          = local.project_id
-  tags                = var.cloud_connector_tags
+  tags                = var.aws_connector_tags
   execute_on_delegate = var.execute_on_delegate
 
   dynamic "fixed_delay_backoff_strategy" {
@@ -35,7 +38,7 @@ resource "harness_platform_connector_aws" "cloud" {
 
   oidc_authentication {
     iam_role_arn       = var.iam_role_arn
-    region             = var.cloud_region
+    region             = var.aws_region
     delegate_selectors = var.delegate_selectors
   }
 }

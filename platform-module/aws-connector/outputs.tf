@@ -1,11 +1,11 @@
-output "cloud_connector_id" {
-  description = "Cloud connector resource ID"
-  value       = harness_platform_connector_aws.cloud.id
+output "aws_connector_id" {
+  description = "AWS connector resource ID"
+  value       = harness_platform_connector_aws.aws.id
 }
 
-output "cloud_connector_identifier" {
-  description = "Cloud connector identifier"
-  value       = harness_platform_connector_aws.cloud.identifier
+output "aws_connector_identifier" {
+  description = "AWS connector identifier (derived from name)"
+  value       = harness_platform_connector_aws.aws.identifier
 }
 
 output "org_id" {

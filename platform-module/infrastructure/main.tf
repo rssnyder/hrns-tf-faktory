@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# Environments and Infrastructure Definitions
+# Infrastructure Definitions
 # ---------------------------------------------------------------------------
 
 data "harness_platform_organization" "org" {
@@ -19,42 +19,18 @@ locals {
   common_tags_tuple = [for k, v in local.common_tags : "${k}:${v}"]
 
   infrastructure_identifiers = {
-    for key, env in var.environments : key => coalesce(
-      env.infrastructure_identifier,
+    for key, config in var.infrastructure_configs : key => coalesce(
+      config.infrastructure_identifier,
       "${key}${var.infrastructure_identifier_suffix}"
     )
   }
 
   infrastructure_names = {
-    for key, env in var.environments : key => coalesce(
-      env.infrastructure_name,
-      "${env.name} ${var.deployment_type}"
+    for key, config in var.infrastructure_configs : key => coalesce(
+      config.infrastructure_name,
+      "${key} ${var.deployment_type}"
     )
   }
-}
-
-# ---------------------------------------------------------------------------
-# Environments
-# ---------------------------------------------------------------------------
-
-resource "harness_platform_environment" "platform" {
-  for_each = var.environments
-
-  identifier = each.key
-  name       = each.value.name
-  org_id     = local.org_id
-  project_id = local.project_id
-  type       = each.value.type
-  tags       = local.common_tags_tuple
-
-  yaml = <<-EOT
-    environment:
-      name: ${each.value.name}
-      identifier: ${each.key}
-      orgIdentifier: ${local.org_id}
-      projectIdentifier: ${local.project_id}
-      type: ${each.value.type}
-  EOT
 }
 
 # ---------------------------------------------------------------------------
@@ -62,13 +38,13 @@ resource "harness_platform_environment" "platform" {
 # ---------------------------------------------------------------------------
 
 resource "harness_platform_infrastructure" "platform" {
-  for_each = var.environments
+  for_each = var.infrastructure_configs
 
   identifier      = local.infrastructure_identifiers[each.key]
   name            = local.infrastructure_names[each.key]
   org_id          = local.org_id
   project_id      = local.project_id
-  env_id          = harness_platform_environment.platform[each.key].identifier
+  env_id          = each.key
   type            = var.deployment_type
   deployment_type = var.deployment_type
   tags            = local.common_tags_tuple
@@ -83,8 +59,8 @@ resource "harness_platform_infrastructure" "platform" {
       deploymentType: ${var.deployment_type}
       type: ${var.deployment_type}
       spec:
-        connectorRef: ${var.cloud_connector_ref}
-        region: ${var.cloud_region}
+        connectorRef: ${var.aws_connector_ref}
+        region: ${var.aws_region}
         cluster: ${coalesce(try(each.value.cluster, null), lookup(var.cluster_overrides, each.key, var.default_cluster))}
       allowSimultaneousDeployments: ${var.allow_simultaneous_deployments}
   EOT
@@ -95,11 +71,11 @@ resource "harness_platform_infrastructure" "platform" {
 # ---------------------------------------------------------------------------
 
 resource "harness_platform_service_overrides_v2" "infra" {
-  for_each = var.create_infra_overrides ? var.environments : {}
+  for_each = var.create_infra_overrides ? var.infrastructure_configs : {}
 
   org_id     = local.org_id
   project_id = local.project_id
-  env_id     = harness_platform_environment.platform[each.key].identifier
+  env_id     = each.key
   infra_id   = harness_platform_infrastructure.platform[each.key].identifier
   type       = "INFRA_GLOBAL_OVERRIDE"
 

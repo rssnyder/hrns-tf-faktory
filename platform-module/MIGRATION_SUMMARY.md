@@ -7,7 +7,7 @@ The platform module has been successfully split into three focused sub-modules.
 ```
 platform-module/
 ├── aws-connector/       # AWS OIDC connector
-├── infrastructure/      # Environments, infra definitions, and overrides
+├── infrastructure/      # Infrastructure definitions and overrides (NO environment creation)
 ├── service/            # CD service with manifests
 └── [original files]    # Preserved for reference
 ```
@@ -17,16 +17,17 @@ platform-module/
 ### 1. **aws-connector** - AWS OIDC Connector
 - **Resources**: `harness_platform_connector_aws`
 - **Purpose**: Create AWS OIDC connector
-- **Outputs**: `cloud_connector_identifier` (used by infrastructure module)
+- **Identifier**: Automatically derived from connector name
+- **Outputs**: `aws_connector_identifier` (used by infrastructure module)
 
-### 2. **infrastructure** - Environments, Infrastructure, and Overrides
+### 2. **infrastructure** - Infrastructure Definitions and Overrides Only
 - **Resources**:
-  - `harness_platform_environment`
   - `harness_platform_infrastructure` 
   - `harness_platform_service_overrides_v2` (INFRA_GLOBAL_OVERRIDE)
-- **Purpose**: Create environments, infrastructure definitions, and infrastructure-specific overrides
+- **Purpose**: Create infrastructure definitions and infrastructure-specific overrides
+- **⚠️ DOES NOT CREATE ENVIRONMENTS**: Environment identifiers must already exist
 - **Key Change**: Infrastructure overrides moved here from service module
-- **Inputs**: Requires `cloud_connector_ref` from aws-connector
+- **Inputs**: Requires `aws_connector_ref` from aws-connector and existing environment identifiers
 - **Outputs**: `infrastructure_identifiers`, `infra_override_ids`
 
 ### 3. **service** - CD Service
@@ -37,13 +38,13 @@ platform-module/
 
 ## What Moved Where
 
-| Resource/Feature | Old Location | New Location |
-|-----------------|--------------|--------------|
-| AWS Connector | Monolithic | `aws-connector/` |
-| Environments | Monolithic | `infrastructure/` |
-| Infrastructure Definitions | Monolithic | `infrastructure/` |
-| **Infrastructure Overrides** | **service-overrides/** | **infrastructure/** |
-| CD Service | Monolithic | `service/` |
+| Resource/Feature | Old Location | New Location | Notes |
+|-----------------|--------------|--------------|-------|
+| AWS Connector | Monolithic | `aws-connector/` | - |
+| **Environments** | **Monolithic** | **REMOVED** | **Module no longer creates environments** |
+| Infrastructure Definitions | Monolithic | `infrastructure/` | Now takes env IDs as input |
+| **Infrastructure Overrides** | **service-overrides/** | **infrastructure/** | Moved to infra module |
+| CD Service | Monolithic | `service/` | - |
 
 ## Migration Guide
 
@@ -56,7 +57,12 @@ module "platform" {
   create_cd_stack        = true
   create_infra_overrides = true
   
-  # All variables in one place
+  environments = {
+    dev = {
+      name = "Dev"
+      type = "PreProduction"
+    }
+  }
 }
 ```
 
@@ -69,26 +75,26 @@ module "aws_connector" {
   org_id     = "default"
   project_id = "platform_engineering"
   
-  iam_role_arn = "arn:aws:iam::123456789012:role/harness-role"
+  aws_connector_name = "AWS Production"  # Identifier: aws_production
+  iam_role_arn       = "arn:aws:iam::123456789012:role/harness-role"
 }
 
-# 2. Infrastructure (includes overrides!)
+# 2. Infrastructure (environment must already exist!)
 module "infrastructure" {
   source = "./platform-module/infrastructure"
   
   org_id     = "default"
   project_id = "platform_engineering"
   
-  cloud_connector_ref = module.aws_connector.cloud_connector_identifier
+  aws_connector_ref = module.aws_connector.aws_connector_identifier
   
-  create_infra_overrides = true  # Moved here!
+  create_infra_overrides = true
   
-  environments = {
+  # Keys MUST match existing environment identifiers
+  infrastructure_configs = {
     dev = {
-      name          = "Development"
-      type          = "PreProduction"
       cluster       = "dev-cluster"
-      load_balancer = "dev-alb"  # Override config here!
+      load_balancer = "dev-alb"  # Override config
     }
   }
 }
@@ -108,12 +114,57 @@ module "service" {
 }
 ```
 
+## Important Breaking Changes
+
+### ⚠️ Infrastructure Module No Longer Creates Environments
+
+**Before:** The module created both environments and infrastructure definitions.
+
+**After:** The infrastructure module ONLY creates infrastructure definitions. You must:
+1. Create environments separately (via UI, API, or separate Terraform resource)
+2. Pass existing environment identifiers to `infrastructure_configs`
+
+**Example:**
+```hcl
+# Create environments separately
+resource "harness_platform_environment" "dev" {
+  identifier = "dev"
+  name       = "Development"
+  org_id     = "default"
+  project_id = "platform_engineering"
+  type       = "PreProduction"
+}
+
+# Then reference in infrastructure module
+module "infrastructure" {
+  source = "./platform-module/infrastructure"
+  
+  infrastructure_configs = {
+    dev = {  # Must match harness_platform_environment.dev.identifier
+      cluster = "dev-cluster"
+    }
+  }
+}
+```
+
+### Variable Changes
+
+| Old Variable | New Variable | Module | Notes |
+|--------------|--------------|--------|-------|
+| `cloud_connector_*` | `aws_connector_*` | `aws-connector` | Renamed for clarity |
+| `cloud_connector_identifier` | **REMOVED** | `aws-connector` | Now auto-derived from name |
+| `cloud_region` | `aws_region` | Both modules | Renamed for clarity |
+| `iam_role_arn` default | **REMOVED** | `aws-connector` | Now required, no default |
+| `environments` | `infrastructure_configs` | `infrastructure` | No longer includes `name` and `type` fields |
+| `environments[].name` | **REMOVED** | - | Environments must exist |
+| `environments[].type` | **REMOVED** | - | Environments must exist |
+
 ## Important Notes
 
-1. **Infrastructure overrides are now in the infrastructure module** - This makes logical sense as they're infrastructure-specific variables
-2. The `service` module is now completely independent - it only creates the service definition
-3. Override variables (`load_balancer`, `prod_listener`, `prod_listener_rule_arn`) are now part of the `environments` object in the infrastructure module
-4. The infrastructure module outputs `infra_override_ids` if overrides are enabled
+1. **Infrastructure module requires existing environments** - Keys in `infrastructure_configs` must match existing environment identifiers
+2. **Infrastructure overrides are now in the infrastructure module** - This makes logical sense as they're infrastructure-specific variables
+3. The `service` module is now completely independent - it only creates the service definition
+4. Override variables (`load_balancer`, `prod_listener`, `prod_listener_rule_arn`) are now part of `infrastructure_configs`
 5. The service module no longer needs `infrastructure_identifiers` or `environments` variables
 
 ## Testing the Split
@@ -124,7 +175,7 @@ Each sub-module can be tested independently:
 # Test aws-connector
 cd aws-connector && terraform init && terraform plan
 
-# Test infrastructure
+# Test infrastructure (requires existing environments!)
 cd infrastructure && terraform init && terraform plan
 
 # Test service

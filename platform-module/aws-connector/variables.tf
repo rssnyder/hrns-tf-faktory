@@ -13,34 +13,22 @@ variable "project_id" {
 }
 
 # ---------------------------------------------------------------------------
-# Cloud connector
+# AWS connector
 # ---------------------------------------------------------------------------
 
-variable "cloud_connector_identifier" {
-  description = "Cloud connector identifier (lowercase, underscores allowed)"
+variable "aws_connector_name" {
+  description = "Display name for the AWS connector (identifier will be derived from this)"
   type        = string
-  default     = "cloud_connector"
-
-  validation {
-    condition     = can(regex("^[a-z][a-z0-9_]*$", var.cloud_connector_identifier))
-    error_message = "cloud_connector_identifier must start with a letter and contain only lowercase letters, numbers, and underscores."
-  }
 }
 
-variable "cloud_connector_name" {
-  description = "Display name for the cloud connector"
+variable "aws_connector_description" {
+  description = "Description for the AWS connector"
   type        = string
-  default     = "Cloud Connector"
+  default     = "AWS connector using Harness OIDC authentication"
 }
 
-variable "cloud_connector_description" {
-  description = "Description for the cloud connector"
-  type        = string
-  default     = "Cloud connector using Harness OIDC authentication"
-}
-
-variable "cloud_connector_tags" {
-  description = "Tags for the cloud connector (Harness key:value format)"
+variable "aws_connector_tags" {
+  description = "Tags for the AWS connector (Harness key:value format)"
   type        = set(string)
   default     = []
 }
@@ -48,11 +36,10 @@ variable "cloud_connector_tags" {
 variable "iam_role_arn" {
   description = "AWS IAM role ARN that Harness OIDC will assume"
   type        = string
-  default     = "arn:aws:iam::568258498023:role/harness-demo-oidc-role"
 }
 
-variable "cloud_region" {
-  description = "Cloud region for connector test and infrastructure definitions"
+variable "aws_region" {
+  description = "AWS region for connector test and infrastructure definitions"
   type        = string
   default     = "us-east-1"
 }
