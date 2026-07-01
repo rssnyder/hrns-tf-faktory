@@ -89,3 +89,30 @@ resource "harness_platform_infrastructure" "platform" {
       allowSimultaneousDeployments: ${var.allow_simultaneous_deployments}
   EOT
 }
+
+# ---------------------------------------------------------------------------
+# Infrastructure-specific overrides (INFRA_GLOBAL_OVERRIDE)
+# ---------------------------------------------------------------------------
+
+resource "harness_platform_service_overrides_v2" "infra" {
+  for_each = var.create_infra_overrides ? var.environments : {}
+
+  org_id     = local.org_id
+  project_id = local.project_id
+  env_id     = harness_platform_environment.platform[each.key].identifier
+  infra_id   = harness_platform_infrastructure.platform[each.key].identifier
+  type       = "INFRA_GLOBAL_OVERRIDE"
+
+  yaml = <<-EOT
+    variables:
+      - name: load_balancer
+        type: String
+        value: "${coalesce(try(each.value.load_balancer, null), var.default_load_balancer)}"
+      - name: prod_listener
+        type: String
+        value: "${coalesce(try(each.value.prod_listener, null), var.default_prod_listener)}"
+      - name: prod_listener_rule_arn
+        type: String
+        value: "${coalesce(try(each.value.prod_listener_rule_arn, null), var.default_prod_listener_rule_arn)}"
+  EOT
+}

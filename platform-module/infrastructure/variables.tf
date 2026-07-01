@@ -71,12 +71,47 @@ variable "allow_simultaneous_deployments" {
   default     = false
 }
 
+# ---------------------------------------------------------------------------
+# Feature flags
+# ---------------------------------------------------------------------------
+
+variable "create_infra_overrides" {
+  description = "Create INFRA_GLOBAL_OVERRIDE per environment/infrastructure (Infrastructure Specific tab in Harness UI)."
+  type        = bool
+  default     = true
+}
+
+# ---------------------------------------------------------------------------
+# Infrastructure overrides
+# ---------------------------------------------------------------------------
+
+variable "default_load_balancer" {
+  description = "Default load_balancer infra override value when not set per environment"
+  type        = string
+  default     = "idis1e-alb-dev"
+}
+
+variable "default_prod_listener" {
+  description = "Default prod_listener infra override ARN when not set per environment"
+  type        = string
+  default     = "arn:aws:elasticloadbalancing:us-east-1:000000000000:listener/app/example/alb-id/abc123/def456"
+}
+
+variable "default_prod_listener_rule_arn" {
+  description = "Default prod_listener_rule_arn infra override ARN when not set per environment"
+  type        = string
+  default     = "arn:aws:elasticloadbalancing:us-east-1:000000000000:listener-rule/app/example/alb-id/abc123/def456/ghi789"
+}
+
 variable "environments" {
   description = "Harness CD environments to create. Map key is the environment identifier."
   type = map(object({
     name                      = string
     type                      = string
     cluster                   = optional(string)
+    load_balancer             = optional(string)
+    prod_listener             = optional(string)
+    prod_listener_rule_arn    = optional(string)
     infrastructure_identifier = optional(string)
     infrastructure_name       = optional(string)
   }))

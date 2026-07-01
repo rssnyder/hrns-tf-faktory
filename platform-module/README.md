@@ -15,27 +15,28 @@ Creates an AWS OIDC connector for Harness to authenticate with AWS.
 - `cloud_connector_identifier` - Connector identifier for referencing
 
 ### 2. infrastructure
-Creates Harness environments and infrastructure definitions.
+Creates Harness environments, infrastructure definitions, and infrastructure-specific overrides.
 
 **Resources:**
 - `harness_platform_environment` - CD environments (dev, testing, stage, prod)
 - `harness_platform_infrastructure` - Infrastructure definitions per environment
+- `harness_platform_service_overrides_v2` - INFRA_GLOBAL_OVERRIDE per environment (optional)
 
 **Key Outputs:**
 - `environment_ids` - Environment resource IDs
 - `infrastructure_ids` - Infrastructure definition resource IDs
-- `infrastructure_identifiers` - Infrastructure identifiers (needed by service-overrides)
+- `infrastructure_identifiers` - Infrastructure identifiers
+- `infra_override_ids` - Infrastructure override resource IDs
 
-### 3. service-overrides
-Creates the Harness service and infrastructure-specific overrides.
+### 3. service
+Creates the Harness CD service with ECS task and service definitions.
 
 **Resources:**
 - `harness_platform_service` - CD service with ECS manifests
-- `harness_platform_service_overrides_v2` - INFRA_GLOBAL_OVERRIDE per environment
 
 **Key Outputs:**
 - `service_id` - Service resource ID
-- `infra_override_ids` - Override resource IDs
+- `service_identifier` - Service identifier
 
 ## Usage Example
 
@@ -76,26 +77,15 @@ module "infrastructure" {
   }
 }
 
-# 3. Service and Overrides
-module "service_overrides" {
-  source = "./platform-module/service-overrides"
+# 3. Service
+module "service" {
+  source = "./platform-module/service"
 
   org_id     = "default"
   project_id = "platform_engineering"
 
   service_identifier = "platform_api"
   service_name       = "Platform API"
-
-  infrastructure_identifiers = module.infrastructure.infrastructure_identifiers
-
-  environments = {
-    dev = {
-      load_balancer = "dev-alb"
-    }
-    prod = {
-      load_balancer = "prod-alb"
-    }
-  }
 
   manifest_store_type = "Github"
   git_connector_ref   = "github_connector"
@@ -173,34 +163,50 @@ module "infrastructure" {
     prod = "production-ecs-cluster"
   }
 
+  # Enable infrastructure overrides
+  create_infra_overrides = true
+
+  # Default override values
+  default_load_balancer          = "default-platform-alb"
+  default_prod_listener          = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/app/default-alb/abc123/def456"
+  default_prod_listener_rule_arn = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener-rule/app/default-alb/abc123/def456/ghi789"
+
   environments = {
     dev = {
       name                      = "Development"
       type                      = "PreProduction"
       cluster                   = "dev-ecs-cluster"
       infrastructure_identifier = "dev_infra"
+      load_balancer             = "dev-api-alb-12345"
+      prod_listener             = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/app/dev-api-alb/abc123/def456"
+      prod_listener_rule_arn    = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener-rule/app/dev-api-alb/abc123/def456/ghi789"
     }
     testing = {
-      name    = "Testing"
-      type    = "PreProduction"
-      cluster = "test-ecs-cluster"
+      name          = "Testing"
+      type          = "PreProduction"
+      cluster       = "test-ecs-cluster"
+      load_balancer = "test-api-alb-12345"
     }
     stage = {
-      name    = "Staging"
-      type    = "PreProduction"
-      cluster = "stage-ecs-cluster"
+      name          = "Staging"
+      type          = "PreProduction"
+      cluster       = "stage-ecs-cluster"
+      load_balancer = "stage-api-alb-12345"
     }
     prod = {
-      name    = "Production"
-      type    = "Production"
-      cluster = "prod-ecs-cluster"
+      name                   = "Production"
+      type                   = "Production"
+      cluster                = "prod-ecs-cluster"
+      load_balancer          = "prod-api-alb-12345"
+      prod_listener          = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/app/prod-api-alb/abc123/def456"
+      prod_listener_rule_arn = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener-rule/app/prod-api-alb/abc123/def456/ghi789"
     }
   }
 }
 
-# 3. Create Service with Infrastructure Overrides
-module "service_overrides" {
-  source = "./platform-module/service-overrides"
+# 3. Create Service
+module "service" {
+  source = "./platform-module/service"
 
   org_id     = local.org_id
   project_id = local.project_id
@@ -209,28 +215,6 @@ module "service_overrides" {
   service_name        = "Platform API Service"
   service_description = "Main API service for platform features"
   deployment_type     = "ECS"
-
-  infrastructure_identifiers = module.infrastructure.infrastructure_identifiers
-  create_infra_overrides     = true
-
-  environments = {
-    dev = {
-      load_balancer          = "dev-api-alb-12345"
-      prod_listener          = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/app/dev-api-alb/abc123/def456"
-      prod_listener_rule_arn = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener-rule/app/dev-api-alb/abc123/def456/ghi789"
-    }
-    testing = {
-      load_balancer = "test-api-alb-12345"
-    }
-    stage = {
-      load_balancer = "stage-api-alb-12345"
-    }
-    prod = {
-      load_balancer          = "prod-api-alb-12345"
-      prod_listener          = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/app/prod-api-alb/abc123/def456"
-      prod_listener_rule_arn = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener-rule/app/prod-api-alb/abc123/def456/ghi789"
-    }
-  }
 
   manifest_store_type              = "Github"
   git_connector_ref                = "shared_services_github"
@@ -253,7 +237,7 @@ output "environment_ids" {
 
 output "service_id" {
   description = "Service identifier"
-  value       = module.service_overrides.service_identifier
+  value       = module.service.service_identifier
 }
 ```
 
@@ -263,9 +247,9 @@ The original module has been preserved in the parent directory files. To migrate
 
 1. Replace the single module call with three separate module calls (as shown above)
 2. Update any references to outputs to use the appropriate sub-module output
-3. Review and adjust variables - some have moved between modules
+3. Infrastructure overrides now live in the `infrastructure` module (not `service`)
 
 ## Dependencies
 
 - `infrastructure` depends on `aws-connector` (needs connector reference)
-- `service-overrides` depends on `infrastructure` (needs infrastructure identifiers for overrides)
+- `service` is independent - no dependencies on other modules

@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# CD Service and Infrastructure Overrides
+# CD Service
 # ---------------------------------------------------------------------------
 
 data "harness_platform_organization" "org" {
@@ -56,11 +56,6 @@ YAML
 resource "terraform_data" "validation" {
   lifecycle {
     precondition {
-      condition     = !var.create_infra_overrides || var.environments != null
-      error_message = "environments must be provided when create_infra_overrides is true."
-    }
-
-    precondition {
       condition     = var.manifest_store_type != "Github" || (var.git_connector_ref != null && var.git_repo_name != null)
       error_message = "git_connector_ref and git_repo_name are required when manifest_store_type is Github."
     }
@@ -105,32 +100,5 @@ ${indent(20, local.service_definition_manifest_store_yaml)}
             primary:
               primaryArtifactRef: <+input>
               sources: []
-  EOT
-}
-
-# ---------------------------------------------------------------------------
-# Infrastructure-specific overrides (INFRA_GLOBAL_OVERRIDE)
-# ---------------------------------------------------------------------------
-
-resource "harness_platform_service_overrides_v2" "infra" {
-  for_each = var.create_infra_overrides ? var.environments : {}
-
-  org_id     = local.org_id
-  project_id = local.project_id
-  env_id     = each.key
-  infra_id   = var.infrastructure_identifiers[each.key]
-  type       = "INFRA_GLOBAL_OVERRIDE"
-
-  yaml = <<-EOT
-    variables:
-      - name: load_balancer
-        type: String
-        value: "${coalesce(try(each.value.load_balancer, null), var.default_load_balancer)}"
-      - name: prod_listener
-        type: String
-        value: "${coalesce(try(each.value.prod_listener, null), var.default_prod_listener)}"
-      - name: prod_listener_rule_arn
-        type: String
-        value: "${coalesce(try(each.value.prod_listener_rule_arn, null), var.default_prod_listener_rule_arn)}"
   EOT
 }

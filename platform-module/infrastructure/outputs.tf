@@ -18,6 +18,11 @@ output "infrastructure_identifiers" {
   value       = { for k, infra in harness_platform_infrastructure.platform : k => infra.identifier }
 }
 
+output "infra_override_ids" {
+  description = "INFRA_GLOBAL_OVERRIDE IDs keyed by environment identifier"
+  value       = { for k, override in harness_platform_service_overrides_v2.infra : k => override.id }
+}
+
 output "org_id" {
   description = "Harness organization ID"
   value       = local.org_id
