@@ -98,13 +98,13 @@ resource "harness_platform_service" "platform" {
                 type: EcsTaskDefinition
                 spec:
                   store:
-${indent(20, local.task_definition_manifest_store_yaml)}
+                    ${indent(16, local.task_definition_manifest_store_yaml)}
             - manifest:
                 identifier: ${var.service_definition_manifest_identifier}
                 type: EcsServiceDefinition
                 spec:
                   store:
-${indent(20, local.service_definition_manifest_store_yaml)}
+                    ${indent(16, local.service_definition_manifest_store_yaml)}
           artifacts:
             primary:
               primaryArtifactRef: <+input>
